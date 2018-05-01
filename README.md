@@ -1,6 +1,15 @@
 # BIOSCHEMAS.ORG GO CRAWL IT!
 
-Minimal web crawler and JSON-LD metadata extractor.
+Minimal web crawler. Extracts microdata and JSON-LD metadata with schema.org.
+
+### ToDo
+
+- [x] Crawl website
+- [x] URL by command line parameters
+- [x] Extracts JSON-LD
+- [x] Extracts microdata
+- [ ] JSON-LD schema.org check
+- [ ] Better file output
 
 ## How to use it:
 
@@ -16,7 +25,7 @@ Use the -h parameter to get info about the command tool.
 ```./bioschemas-gocrawlit -h```
 
 
-## How to build
+## Building binaries
 
 To create a binary for your current SO use:
 ```make build```
