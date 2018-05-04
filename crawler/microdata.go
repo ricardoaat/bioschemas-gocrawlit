@@ -1,6 +1,6 @@
 // Package microdata provides types and functions for paring microdata from web pages.
 // See http://www.w3.org/TR/microdata/ for more information about Microdata
-package microdata
+package crawler
 
 import (
 	"bytes"
@@ -127,8 +127,8 @@ func (p *Parser) Parse() (*Microdata, error) {
 			}
 			// itemid only valid when itemscope and itemtype are both present
 			if itemid, exists := getAttr("itemid", node); exists {
-				if parsedUrl, err := p.base.Parse(itemid); err == nil {
-					item.ID = parsedUrl.String()
+				if parsedURL, err := p.base.Parse(itemid); err == nil {
+					item.ID = parsedURL.String()
 				}
 			}
 
@@ -193,15 +193,15 @@ func (p *Parser) readItem(item *Item, node *html.Node) {
 			}
 		case atom.Audio, atom.Embed, atom.Iframe, atom.Img, atom.Source, atom.Track, atom.Video:
 			if urlValue, exists := getAttr("src", node); exists {
-				if parsedUrl, err := p.base.Parse(urlValue); err == nil {
-					propertyValue = parsedUrl.String()
+				if parsedURL, err := p.base.Parse(urlValue); err == nil {
+					propertyValue = parsedURL.String()
 				}
 
 			}
 		case atom.A, atom.Area, atom.Link:
 			if urlValue, exists := getAttr("href", node); exists {
-				if parsedUrl, err := p.base.Parse(urlValue); err == nil {
-					propertyValue = parsedUrl.String()
+				if parsedURL, err := p.base.Parse(urlValue); err == nil {
+					propertyValue = parsedURL.String()
 				}
 			}
 		case atom.Object:

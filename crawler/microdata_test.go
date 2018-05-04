@@ -3,7 +3,7 @@
   information, see <http://unlicense.org/> or the accompanying UNLICENSE file.
 */
 
-package microdata
+package crawler
 
 import (
 	"bytes"
