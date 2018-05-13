@@ -47,4 +47,6 @@ The binaries would be placed under build/ path.
 - [x] Extracts microdata
 - [x] Better file output
 - [x] Sitemap.xml Crawl option
-
+- [ ] Conecting to a flexible storage
+- [x] Pagination option
+- [ ] Writing file as it scraps

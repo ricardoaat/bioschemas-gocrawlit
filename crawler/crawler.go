@@ -27,6 +27,7 @@ type Crawler struct {
 	AllowedDomains []string
 	PagesData      []pageData
 	Filter         string
+	QueryWord      string
 }
 
 // Init setup the initial configuration for the crawler
@@ -100,7 +101,14 @@ func (cw *Crawler) Init() {
 			log.Error("Error parsing URL ", err)
 		}
 
+		re := regexp.MustCompile(fmt.Sprintf("^?%s=.*", cw.QueryWord))
+		if len(cw.QueryWord) > 0 && re.MatchString(u.RawQuery) {
+			cw.C.Visit(u.String())
+			return
+		}
+
 		if cw.SkipQueries {
+
 			u.RawQuery = ""
 			log.Debug("Found link ", u.String())
 			cw.C.Visit(u.String())
@@ -119,7 +127,7 @@ func (cw *Crawler) Init() {
 		if err != nil {
 			log.Error("Error parsing URL ", err)
 		}
-
+		log.Info(u)
 		cw.C.Visit(u.String())
 	})
 
@@ -160,7 +168,10 @@ func extractMicrodata(html string, baseURL *url.URL) ([]byte, error) {
 // store on PagesData which contains the microdata and JSON-LD metadata
 // extracted from the pages visited.
 func (cw *Crawler) ToJSONfile() error {
-	f := fmt.Sprintf("%s_schema.json", cw.BaseURL.Host)
+	nq := cw.BaseURL
+	nq.RawQuery = ""
+	p := strings.Replace(cw.BaseURL.Path, "/", "_", -1)
+	f := fmt.Sprintf("%s%sschema.json", cw.BaseURL.Host, p)
 
 	j, err := json.Marshal(cw.PagesData)
 	if err != nil {
@@ -168,7 +179,11 @@ func (cw *Crawler) ToJSONfile() error {
 		return err
 	}
 
+	log.Info("Creating file ", f)
 	err = ioutil.WriteFile(f, j, 0644)
-
+	if err != nil {
+		log.Error("Error writing output file ", err)
+		return err
+	}
 	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/bioschemas/bioschemas-gocrawlit/crawler"
+	"github.com/ricardoaat/bioschemas-gocrawlit/crawler"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
 )
@@ -49,6 +49,7 @@ func main() {
 	u := flag.String("u", "", "Url to crawl and extract markup")
 	m := flag.Int("maxdepth", 0, "Max number of recursion depth of visited URLs")
 	p := flag.Bool("p", false, "Stay on current path.")
+	qr := flag.String("query", "", "Pagination query word")
 
 	flag.Parse()
 
@@ -85,12 +86,16 @@ func main() {
 			MaxDepth:       *m,
 			AllowedDomains: ad,
 			Filter:         filter,
+			QueryWord:      *qr,
 		}
 
 		c.Init()
 
 		c.Start()
 
-		c.ToJSONfile()
+		err = c.ToJSONfile()
+		if err != nil {
+			log.Error("ToJSONfile error ", err)
+		}
 	}
 }
