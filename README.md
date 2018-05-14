@@ -43,10 +43,11 @@ The binaries would be placed under build/ path.
 
 - [x] Crawl website
 - [x] URL by command line parameters
-- [x] Extracts JSON-LD
-- [x] Extracts microdata
+- [x] JSON-LD Extraction
+- [x] Microdata extraction
 - [x] Better file output
 - [x] Sitemap.xml Crawl option
-- [ ] Conecting to a flexible storage
 - [x] Pagination option
+- [ ] Conecting to a flexible storage
+- [ ] RDFa extraction support
 - [ ] Writing file as it scraps
