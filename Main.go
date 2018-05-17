@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/ricardoaat/bioschemas-gocrawlit/crawler"
 	"github.com/rifflock/lfshook"
@@ -43,11 +44,12 @@ func logInit(d bool) {
 
 func main() {
 
+	e := flag.Bool("e", false, "Connects to an elastisearch server on http://127.0.0.1:9200")
 	d := flag.Bool("d", false, "Sets up the log level to debug")
 	v := flag.Bool("v", false, "Returns the binary version and built date info")
 	q := flag.Bool("q", false, "Skip queries on the URL.")
 	u := flag.String("u", "", "Url to crawl and extract markup")
-	m := flag.Int("maxdepth", 0, "Max number of recursion depth of visited URLs")
+	m := flag.Int("m", 0, "Max number of recursion depth of visited URLs")
 	p := flag.Bool("p", false, "Stay on current path.")
 	qr := flag.String("query", "", "Pagination query word")
 
@@ -71,6 +73,11 @@ func main() {
 			log.Error("Error parsing URL ", err)
 		}
 
+		nq := baseURL
+		nq.RawQuery = ""
+
+		f := fmt.Sprintf("%s%sschema.json", baseURL.Host, strings.Replace(baseURL.Path, "/", "_", -1))
+
 		filter := ""
 		if *p {
 			filter = fmt.Sprintf(`^%s://%s%s`, baseURL.Scheme, baseURL.Host, baseURL.Path)
@@ -81,6 +88,9 @@ func main() {
 		ad = append(ad, fmt.Sprintf("www.%s", baseURL.Host))
 
 		c := crawler.Crawler{
+			UseElastic:     *e,
+			Index:          baseURL.Host,
+			OutputFileName: f,
 			BaseURL:        baseURL,
 			SkipQueries:    *q,
 			MaxDepth:       *m,
@@ -91,11 +101,18 @@ func main() {
 
 		c.Init()
 
+		if *e {
+			if err := c.ElasticInit(); err != nil {
+				log.Error("Error initializing elastic function ")
+			}
+		}
+
 		c.Start()
 
-		err = c.ToJSONfile()
-		if err != nil {
-			log.Error("ToJSONfile error ", err)
-		}
+		// err = c.ToJSONfile()
+		// if err != nil {
+		// 	log.Error("ToJSONfile error ", err)
+		// }
+
 	}
 }
