@@ -69,6 +69,39 @@
   version = "v1.2.3"
 
 [[projects]]
+  name = "github.com/kr/pty"
+  packages = ["."]
+  revision = "282ce0e5322c82529687d609ee670fac7c7d917c"
+  version = "v1.1.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter"
+  ]
+  revision = "9825584555aa620c53c265d4a09ace0df1346fd9"
+
+[[projects]]
+  name = "github.com/olivere/elastic"
+  packages = [
+    ".",
+    "config",
+    "uritemplates"
+  ]
+  revision = "dabcc5de0a3fd6313870c223c3119e2b1e942ba3"
+  version = "v6.1.23"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   name = "github.com/rifflock/lfshook"
   packages = ["."]
   revision = "bf539943797a1f34c1f502d07de419b5238ae6c6"
@@ -162,6 +195,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b4de4e0c37d8d100a0def05f1734e5f9af6736a4317f48bc8cf21388f24e8eca"
+  inputs-digest = "3e7207e8ccbc8c11c5b724d40b7686f1deb199058003ef10561568f5faada98b"
   solver-name = "gps-cdcl"
   solver-version = 1

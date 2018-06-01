@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/chromedp/chromedp"
+	"github.com/chromedp/chromedp/runner"
 	"github.com/ricardoaat/bioschemas-gocrawlit/crawler"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +19,7 @@ import (
 var (
 	version   string
 	buildDate string
+	c         crawler.Crawler
 )
 
 func logInit(d bool) {
@@ -48,9 +53,9 @@ func main() {
 	d := flag.Bool("d", false, "Sets up the log level to debug")
 	v := flag.Bool("v", false, "Returns the binary version and built date info")
 	q := flag.Bool("q", false, "Skip queries on the URL.")
-	u := flag.String("u", "", "Url to crawl and extract markup")
-	m := flag.Int("m", 0, "Max number of recursion depth of visited URLs")
 	p := flag.Bool("p", false, "Stay on current path.")
+	m := flag.Int("m", 0, "Max number of recursion depth of visited URLs")
+	u := flag.String("u", "", "Url to crawl and extract markup")
 	qr := flag.String("query", "", "Pagination query word")
 
 	flag.Parse()
@@ -60,59 +65,105 @@ func main() {
 	log.Info("--------------Init program--------------")
 	log.Info(fmt.Sprintf("Version: %s Build Date: %s", version, buildDate))
 
-	if !*v {
+	testChromed()
+	return
 
-		log.Info("URL to crawl ", *u)
+	if *v {
+		return
+	}
 
-		if *u == "" {
-			log.Error("Empty URL")
+	log.Info("URL to crawl ", *u)
+	if *u == "" {
+		log.Error("Empty URL")
+	}
+
+	baseURL, err := url.Parse(*u)
+	if err != nil {
+		log.Error("Error parsing URL ", err)
+	}
+
+	nq := baseURL
+	nq.RawQuery = ""
+
+	f := fmt.Sprintf("%s%sschema.json", baseURL.Host, strings.Replace(baseURL.Path, "/", "_", -1))
+
+	filter := ""
+	if *p {
+		filter = fmt.Sprintf(`^%s://%s%s`, baseURL.Scheme, baseURL.Host, baseURL.Path)
+	}
+
+	var ad []string
+	ad = append(ad, baseURL.Host)
+	ad = append(ad, fmt.Sprintf("www.%s", baseURL.Host))
+
+	c = crawler.Crawler{
+		UseElastic:     *e,
+		Index:          baseURL.Host,
+		OutputFileName: f,
+		BaseURL:        baseURL,
+		SkipQueries:    *q,
+		MaxDepth:       *m,
+		AllowedDomains: ad,
+		Filter:         filter,
+		QueryWord:      *qr,
+	}
+
+	c.Init()
+
+	if *e {
+		if err := c.ElasticInit(); err != nil {
+			log.Error("Error initializing elastic function ")
 		}
+	}
 
-		baseURL, err := url.Parse(*u)
-		if err != nil {
-			log.Error("Error parsing URL ", err)
-		}
+	c.Start()
 
-		nq := baseURL
-		nq.RawQuery = ""
+}
 
-		f := fmt.Sprintf("%s%sschema.json", baseURL.Host, strings.Replace(baseURL.Path, "/", "_", -1))
+func testChromed() {
+	var err error
 
-		filter := ""
-		if *p {
-			filter = fmt.Sprintf(`^%s://%s%s`, baseURL.Scheme, baseURL.Host, baseURL.Path)
-		}
+	// create context
+	ctxt, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		var ad []string
-		ad = append(ad, baseURL.Host)
-		ad = append(ad, fmt.Sprintf("www.%s", baseURL.Host))
+	// create chrome instance
+	c, err := chromedp.New(ctxt, chromedp.WithLog(log.Printf), chromedp.WithRunnerOptions(
+		runner.Flag("headless", true),
+		//runner.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36"),
+		runner.Flag("disable-gpu", true),
+		runner.Flag("no-first-run", true),
+		runner.Flag("no-default-browser-check", true),
+	))
 
-		c := crawler.Crawler{
-			UseElastic:     *e,
-			Index:          baseURL.Host,
-			OutputFileName: f,
-			BaseURL:        baseURL,
-			SkipQueries:    *q,
-			MaxDepth:       *m,
-			AllowedDomains: ad,
-			Filter:         filter,
-			QueryWord:      *qr,
-		}
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		c.Init()
+	// run task list
+	var res string
+	url := `http://bioschemas.org/bioschemas-uniprot-render/`
+	err = c.Run(ctxt, text(&res, url))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		if *e {
-			if err := c.ElasticInit(); err != nil {
-				log.Error("Error initializing elastic function ")
-			}
-		}
+	// shutdown chrome
+	log.Warn("Shutting down CHROME")
+	err = c.Shutdown(ctxt)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		c.Start()
+	log.Warn("Result ", res)
+}
 
-		// err = c.ToJSONfile()
-		// if err != nil {
-		// 	log.Error("ToJSONfile error ", err)
-		// }
-
+func text(res *string, url string) chromedp.Tasks {
+	return chromedp.Tasks{
+		chromedp.Navigate(url),
+		chromedp.Sleep(1 * time.Second),
+		//script[type=\"application/ld+json\"]
+		chromedp.WaitReady(`data-loader`, chromedp.ByQuery),
+		chromedp.InnerHTML(`html`, res, chromedp.ByQuery),
 	}
 }
