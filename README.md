@@ -7,7 +7,7 @@ Crawls and extracts bioschemas.org/schema.org JSON-LD and Microdata from a given
 ---
 Use example: 
 ```bash
-./bioschemas-gocrawlit_mac_64 -p -u "https://www.ebi.ac.uk/biosamples/samples"
+./bioschemas-gocrawlit -p -u "https://www.ebi.ac.uk/biosamples/samples" -q -query "start"
 ./bioschemas-gocrawlit_mac_64 -q -u https://tess.elixir-europe.org/sitemaps/events.xml
 ./bioschemas-gocrawlit_mac_64 -u http://159.149.160.88/pscan_chip_dev/
 ```

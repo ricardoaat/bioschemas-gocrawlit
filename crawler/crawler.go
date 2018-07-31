@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/olivere/elastic"
@@ -16,8 +17,9 @@ import (
 )
 
 type pageData struct {
-	Page     string                 `json:"page"`
-	Metadata map[string]interface{} `json:"data"`
+	Page        string                 `json:"page"`
+	Metadata    map[string]interface{} `json:"data"`
+	CrawledDate time.Time              `json:"crawledDate`
 }
 
 // Crawler structure calls collys crawler and
@@ -34,7 +36,6 @@ type Crawler struct {
 	Filter         string
 	QueryWord      string
 	ElasticClient  *elastic.Client
-	OutputFileName string
 	Client         *elastic.Client
 	OutFile        *os.File
 }
@@ -42,11 +43,6 @@ type Crawler struct {
 // Init setup the initial configuration for the crawler
 // based on the parameter given when the crawler instance is created.
 func (cw *Crawler) Init() {
-	f, err := os.Create(cw.OutputFileName)
-	if err != nil {
-		log.Error("Error opening file ", f)
-	}
-	cw.OutFile = f
 
 	cacheDir := fmt.Sprintf("bioschemas_gocrawlit_cache/%s_cache", cw.BaseURL.Host)
 
@@ -87,7 +83,7 @@ func (cw *Crawler) Init() {
 		if err := json.Unmarshal([]byte(e.Text), &res); err != nil {
 			log.Error("Error getting MAP from microdata json result ")
 		}
-		pageData := pageData{e.Request.URL.String(), res}
+		pageData := pageData{e.Request.URL.String(), res, time.Now()}
 
 		if cw.UseElastic {
 			cw.sendToElastic(pageData)
@@ -112,7 +108,7 @@ func (cw *Crawler) Init() {
 				return
 			}
 
-			pageData := pageData{e.Request.URL.String(), res}
+			pageData := pageData{e.Request.URL.String(), res, time.Now()}
 
 			if cw.UseElastic {
 				cw.sendToElastic(pageData)
@@ -126,7 +122,7 @@ func (cw *Crawler) Init() {
 
 	cw.C.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
-
+		log.Debug("LINK: ", link)
 		u, err := url.Parse(e.Request.AbsoluteURL(link))
 		if err != nil {
 			log.Error("Error parsing URL ", err)
@@ -134,6 +130,7 @@ func (cw *Crawler) Init() {
 
 		re := regexp.MustCompile(fmt.Sprintf("^?%s=.*", cw.QueryWord))
 		if len(cw.QueryWord) > 0 && re.MatchString(u.RawQuery) {
+			log.Debug(u.RawQuery, " Matched query")
 			cw.C.Visit(u.String())
 			return
 		}
@@ -177,10 +174,19 @@ func (cw *Crawler) Start() {
 }
 
 func (cw *Crawler) sendToElastic(p pageData) {
+	indexType := "markup"
+
 	ctx := context.Background()
 	data := p.Metadata
 	data["page"] = p.Page
-	_, err := cw.Client.Index().Index(cw.Index).Type("page").BodyJson(data).Do(ctx)
+	data["datetime"] = p.CrawledDate
+
+	_, err := cw.Client.Index().
+		Index(cw.Index).
+		Id(p.Page).
+		Type(indexType).
+		BodyJson(data).
+		Do(ctx)
 	if err != nil {
 		log.Panic("Error indexig ", p.Page)
 	}

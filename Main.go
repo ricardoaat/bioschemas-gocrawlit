@@ -65,9 +65,6 @@ func main() {
 	log.Info("--------------Init program--------------")
 	log.Info(fmt.Sprintf("Version: %s Build Date: %s", version, buildDate))
 
-	testChromed()
-	return
-
 	if *v {
 		return
 	}
@@ -85,7 +82,15 @@ func main() {
 	nq := baseURL
 	nq.RawQuery = ""
 
-	f := fmt.Sprintf("%s%sschema.json", baseURL.Host, strings.Replace(baseURL.Path, "/", "_", -1))
+	dashedURL := fmt.Sprintf("%s%s", baseURL.Host, strings.Replace(baseURL.Path, "/", "_", -1))
+
+	f := fmt.Sprintf("%sschema.json", dashedURL)
+	foutput, err := os.Create(f)
+	defer foutput.Close()
+
+	if err != nil {
+		log.Error("Error opening file ", f)
+	}
 
 	filter := ""
 	if *p {
@@ -98,8 +103,8 @@ func main() {
 
 	c = crawler.Crawler{
 		UseElastic:     *e,
-		Index:          baseURL.Host,
-		OutputFileName: f,
+		Index:          dashedURL,
+		OutFile:        foutput,
 		BaseURL:        baseURL,
 		SkipQueries:    *q,
 		MaxDepth:       *m,
